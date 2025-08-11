@@ -1,18 +1,18 @@
 # Portfolio: Artifactory to Confluence Updater Project
 
 ## Project Overview
-This project is a Python-based automation tool designed to fetch artifact metadata from a JFrog Artifactory repository, process it into a structured table format, and update a Confluence page with the resulting content. It demonstrates skills in API integration, data parsing, command-line argument handling, and content generation for collaboration tools. The tool is particularly useful for teams managing software artifacts, ensuring documentation stays up-to-date without manual intervention.
+This project is a Python-based automation tool designed to fetch artifact metadata from a JFrog Artifactory repository, process it into a structured table format, and update a Confluence page with the latest package informations. It involves API integration, data parsing, command-line argument handling, and content generation for collaboration tools in Atlassian environments. 
 
-Key features include:
+Features:
 - Querying Artifactory using AQL (Artifactory Query Language) to retrieve artifact lists and properties.
 - Parsing artifact filenames to extract name, version, and platform details when properties are missing.
 - Generating Wiki markup for Confluence tables, including headers, footers, and warnings.
 - Updating or creating Confluence pages via the Atlassian API, with rate-limiting handling.
 - Attaching markup files as backups to Confluence pages.
 
-The project was developed in a development status, focusing on reliability and extensibility. Note: The full source code is not publicly available in the repository; only a README file is provided for overview purposes.
+The full source code is not publicly available in the repository; only a README file is provided for overview purposes.
 
-## Technologies and Libraries Used
+## Notable Used Tools and Libraries:
 - **Python 3**: Core language for scripting.
 - **argparse**: For handling command-line arguments.
 - **Artifactory (artifactory-python-client)**: To interact with Artifactory APIs.
@@ -67,54 +67,80 @@ Supporting files:
 - **markup_wiki.txt**: Example output markup with a table.
 
 ## Challenges and Solutions
-- **Parsing Inconsistent Filenames**: Artifacts may lack properties, so regex-based fallback in `UriParser` ensures robust extraction.
+- **Parsing Inconsistent Filenames**: Artifacts may lack properties, so regex-based fallback in `UriParser` ensures extraction.
 - **API Rate Limits**: Added sleep intervals in Confluence interactions.
-- **Sorting Versions**: Handled semantic versioning with numeric splitting for accurate sorting.
+- **Sorting Versions**: Handled semantic versioning with numeric splitting.
 - **Security**: Tokens/passwords are passed via arguments, avoiding hardcoding.
 
-This project showcases modular design, error handling, and integration between DevOps tools.
-
-## UML Diagram: Project Flow (Sequence Diagram)
-Below is a Mermaid-based sequence diagram illustrating the high-level flow of the project. It shows interactions between key classes and external services.
+## UML Sequence Diagram: Project Flow
+Below is a UML-compliant sequence diagram illustrating the high-level flow of the project, using explicit lifelines, synchronous (closed arrow) and asynchronous (open arrow) messages, and proper interaction notation (e.g., loops, alternatives):
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant ArgsCollector as ArtifactoryArgumentCollector
-    participant ArtToConf as ArtifactoryToConfluence
-    participant UriParser
-    participant ConfTable as ConfluenceTable
-    participant HeaderFooter as HeaderFooterWiki
-    participant ConfConnector as ConfluenceConnector
-    participant Artifactory
-    participant Confluence
+    actor User
+    participant ArgsCollector as :ArtifactoryArgumentCollector
+    participant ArtToConf as :ArtifactoryToConfluence
+    participant UriParser as :UriParser
+    participant ConfTable as :ConfluenceTable
+    participant HeaderFooter as :HeaderFooterWiki
+    participant ConfConnector as :ConfluenceConnector
+    participant Artifactory as :Artifactory
+    participant Confluence as :Confluence
 
-    User->>ArgsCollector: Parse CLI arguments
-    ArgsCollector->>User: Return parsed args
+    activate User
+    User->>ArgsCollector: parse_args()
+    activate ArgsCollector
+    ArgsCollector-->>User: ParsedArgs
+    deactivate ArgsCollector
 
-    User->>ArtToConf: Initialize with args (Artifactory creds, URL)
-    ArtToConf->>Artifactory: AQL query for artifacts
-    Artifactory->>ArtToConf: Return artifact list with properties
+    User->>ArtToConf: new(artifactory_username, artifactory_token, artifactory_url)
+    activate ArtToConf
+    ArtToConf->>Artifactory: aql_load_artifacts()
+    activate Artifactory
+    Artifactory-->>ArtToConf: artifact_list
+    deactivate Artifactory
 
-    loop For each artifact
-        ArtToConf->>UriParser: Parse filename (if no properties)
-        UriParser->>ArtToConf: Return {name, version, platform}
-        ArtToConf->>ConfTable: Add ConfluenceTableEntry
+    loop for each artifact
+        ArtToConf->>UriParser: parse_uri(filename)
+        activate UriParser
+        UriParser-->>ArtToConf: {name, version, platform}
+        deactivate UriParser
+        ArtToConf->>ConfTable: add_entry(new ConfluenceTableEntry(...))
+        activate ConfTable
+        ConfTable-->>ArtToConf: 
+        deactivate ConfTable
     end
 
-    ArtToConf->>ConfTable: Generate markup table
+    ArtToConf->>ConfTable: to_markup_str()
+    activate ConfTable
+    ConfTable-->>ArtToConf: markup_table
+    deactivate ConfTable
+    deactivate ArtToConf
 
-    User->>HeaderFooter: Read header/footer files
-    HeaderFooter->>User: Return markup strings
+    User->>HeaderFooter: new(header_file, footer_file)
+    activate HeaderFooter
+    HeaderFooter-->>User: header, footer markup
+    deactivate HeaderFooter
 
-    User->>ConfConnector: Initialize with args (Confluence creds, URL)
-    ConfConnector->>Confluence: Check if page exists/up-to-date
-    Confluence->>ConfConnector: Return status
+    User->>ConfConnector: new(confluence_url, confluence_username, confluence_token)
+    activate ConfConnector
+    ConfConnector->>Confluence: is_page_content_is_already_updated(page_id, markup)
+    activate Confluence
+    Confluence-->>ConfConnector: boolean
+    deactivate Confluence
 
-    alt Page needs update
-        ConfConnector->>Confluence: Update/Create page with markup (header + table + footer)
-        Confluence->>ConfConnector: Confirm update
-        ConfConnector->>Confluence: Upload attachment (markup backup)
+    alt page needs update
+        ConfConnector->>Confluence: update_or_create(page_id, page_title, header + markup_table + footer)
+        activate Confluence
+        Confluence-->>ConfConnector: success
+        deactivate Confluence
+        ConfConnector->>Confluence: attach_file(markup_attachment, page_id, page_title)
+        activate Confluence
+        Confluence-->>ConfConnector: success
+        deactivate Confluence
     end
 
-    ConfConnector->>User: Success/Error message
+    ConfConnector-->>User: Success/Error message
+    deactivate ConfConnector
+    deactivate User
+```
