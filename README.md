@@ -1,4 +1,4 @@
-# Artifactory to Confluence Updater Project
+# Artifactory to Confluence Updater
 
 ## Project Overview
 This project is a Python-based automation tool designed to fetch artifact metadata from a JFrog Artifactory repository, process it into a structured table format, and update a Confluence page with the latest package informations. It involves API integration, data parsing, command-line argument handling, and content generation for collaboration tools in Atlassian environments. 
