@@ -72,75 +72,15 @@ Supporting files:
 - **Sorting Versions**: Handled semantic versioning with numeric splitting.
 - **Security**: Tokens/passwords are passed via arguments, avoiding hardcoding.
 
-## UML Sequence Diagram: Project Flow
-Below is a UML-compliant sequence diagram illustrating the high-level flow of the project, using explicit lifelines, synchronous (closed arrow) and asynchronous (open arrow) messages, and proper interaction notation (e.g., loops, alternatives):
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant ArgsCollector as :ArtifactoryArgumentCollector
-    participant ArtToConf as :ArtifactoryToConfluence
-    participant UriParser as :UriParser
-    participant ConfTable as :ConfluenceTable
-    participant HeaderFooter as :HeaderFooterWiki
-    participant ConfConnector as :ConfluenceConnector
-    participant Artifactory as :Artifactory
-    participant Confluence as :Confluence
-
-    activate User
-    User->>ArgsCollector: parse_args()
-    activate ArgsCollector
-    ArgsCollector-->>User: ParsedArgs
-    deactivate ArgsCollector
-
-    User->>ArtToConf: new(artifactory_username, artifactory_token, artifactory_url)
-    activate ArtToConf
-    ArtToConf->>Artifactory: aql_load_artifacts()
-    activate Artifactory
-    Artifactory-->>ArtToConf: artifact_list
-    deactivate Artifactory
-
-    loop for each artifact
-        ArtToConf->>UriParser: parse_uri(filename)
-        activate UriParser
-        UriParser-->>ArtToConf: {name, version, platform}
-        deactivate UriParser
-        ArtToConf->>ConfTable: add_entry(new ConfluenceTableEntry(...))
-        activate ConfTable
-        ConfTable-->>ArtToConf: 
-        deactivate ConfTable
-    end
-
-    ArtToConf->>ConfTable: to_markup_str()
-    activate ConfTable
-    ConfTable-->>ArtToConf: markup_table
-    deactivate ConfTable
-    deactivate ArtToConf
-
-    User->>HeaderFooter: new(header_file, footer_file)
-    activate HeaderFooter
-    HeaderFooter-->>User: header, footer markup
-    deactivate HeaderFooter
-
-    User->>ConfConnector: new(confluence_url, confluence_username, confluence_token)
-    activate ConfConnector
-    ConfConnector->>Confluence: is_page_content_is_already_updated(page_id, markup)
-    activate Confluence
-    Confluence-->>ConfConnector: boolean
-    deactivate Confluence
-
-    alt page needs update
-        ConfConnector->>Confluence: update_or_create(page_id, page_title, header + markup_table + footer)
-        activate Confluence
-        Confluence-->>ConfConnector: success
-        deactivate Confluence
-        ConfConnector->>Confluence: attach_file(markup_attachment, page_id, page_title)
-        activate Confluence
-        Confluence-->>ConfConnector: success
-        deactivate Confluence
-    end
-
-    ConfConnector-->>User: Success/Error message
-    deactivate ConfConnector
-    deactivate User
+## Example: Wiki Markup Table
+```markdown
+{warning:title=Automatic Generation Warning|icon=true}
+This page is automatically updated with data from Artifactory via the Bamboo Job {status:colour=yellow|title=ADD LINK|subtle=false}. Please do not edit it manually!
+{warning}
+||Name||Version||Platform||Upload Date||Link||Source||Open Source (License)||Changes||
+|opencv|3.4.10|linux-gcc5.4.0|2021-08-23|[repo_name|repo_link]|GitHub, [download_source]|True|[Changes]|
+|opencv|3.4.10|win64-vc100|2021-09-13|[repo_name|repo_link]|GitHub, [download_source]|True|[Changes]|
+{warning:title=Automatic Generation Warning|icon=true}
+This page is automatically updated with data from Artifactory via the Bamboo Job {status:colour=yellow|title=ADD LINK|subtle=false}. Please do not edit it manually!
+{warning}
 ```
